@@ -34,7 +34,7 @@ WAVE2VEC2_SAMPLE_RATE = 16000
 WAVE2VEC2_FEATURE_DIM = 768
 
 # Dataset paths
-RAVDESS_FOLDER = 'RAVDESS_data'
+RAVDESS_FOLDER = 'ravdess_data'
 MODELS_FOLDER = 'trained_models'
 
 # Feature aggregation (mean, std, max, min from 768 dimensions)
