@@ -5,6 +5,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import Dataset, DataLoader
+from tqdm import tqdm
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split
 from config import MODEL_CONFIG, EMOTION_DICT
@@ -120,7 +121,12 @@ def prepare_data(X, y, test_size=None, random_state=None):
     
     # Split BEFORE normalization
     X_train_raw, X_test_raw, y_train, y_test = train_test_split(
-        X_array, y_encoded, test_size=test_size, random_state=random_state, stratify=y_encoded
+        X_array,
+        y_encoded,
+        test_size=test_size,
+        random_state=random_state,
+        shuffle=True,
+        stratify=y_encoded,
     )
     
     # Fit scaler on training data ONLY
@@ -224,7 +230,7 @@ def evaluate(model, test_loader, criterion, device):
     return avg_loss, accuracy, all_preds, all_labels
 
 
-def train_model(model, train_loader, test_loader, device, num_epochs=None, learning_rate=None):
+def train_model(model, train_loader, test_loader, device, num_epochs=None, learning_rate=None, class_weights=None):
     """
     Train the emotion classifier model.
     
@@ -251,7 +257,10 @@ def train_model(model, train_loader, test_loader, device, num_epochs=None, learn
     if learning_rate is None:
         learning_rate = MODEL_CONFIG['learning_rate']
     
-    criterion = nn.CrossEntropyLoss()
+    if class_weights is not None:
+        criterion = nn.CrossEntropyLoss(weight=class_weights.to(device))
+    else:
+        criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
     
     train_losses = []
@@ -261,7 +270,7 @@ def train_model(model, train_loader, test_loader, device, num_epochs=None, learn
     
     print(f"Training Emotion Classifier on {device}...\n")
     
-    for epoch in range(num_epochs):
+    for epoch in tqdm(range(num_epochs)):
         train_loss, train_acc = train_epoch(model, train_loader, criterion, optimizer, device)
         test_loss, test_acc, _, _ = evaluate(model, test_loader, criterion, device)
         
@@ -270,7 +279,7 @@ def train_model(model, train_loader, test_loader, device, num_epochs=None, learn
         test_losses.append(test_loss)
         test_accs.append(test_acc)
         
-        if (epoch + 1) % 5 == 0:
+        if (epoch + 1) % 10 == 0:
             print(f"Epoch [{epoch+1}/{num_epochs}]")
             print(f"  Train Loss: {train_loss:.4f}, Accuracy: {train_acc:.2f}%")
             print(f"  Test Loss: {test_loss:.4f}, Accuracy: {test_acc:.2f}%\n")

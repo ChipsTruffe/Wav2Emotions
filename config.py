@@ -35,7 +35,22 @@ WAVE2VEC2_FEATURE_DIM = 768
 
 # Dataset paths
 RAVDESS_FOLDER = 'ravdess_data'
+MELD_FOLDER = 'MELD_data/'
 MODELS_FOLDER = 'trained_models'
+
+# MELD emotions (7 classes, excluding 'calm' from RAVDESS)
+MELD_EMOTIONS = {
+    'neutral': 'neutral',
+    'anger': 'angry',
+    'disgust': 'disgusted',
+    'sadness': 'sad',
+    'joy': 'happy',
+    'surprise': 'surprised',
+    'fear': 'fearful'
+}
+
+# MELD emotion codes for CSV parsing
+MELD_EMOTION_LIST = ['neutral', 'anger', 'disgust', 'sadness', 'joy', 'surprise', 'fear']
 
 # Feature aggregation (mean, std, max, min from 768 dimensions)
 FEATURE_AGGREGATION_METHODS = ['mean', 'std', 'max', 'min']
