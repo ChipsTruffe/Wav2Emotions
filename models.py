@@ -45,9 +45,10 @@ class EmotionClassifier(nn.Module):
     - Input: 3072 (Wave2Vec2 features)
     - Hidden: 512 -> 256 -> 128 with batch norm and dropout
     - Output: 8 (emotion classes)
+    - Dropout: 0.5 after each hidden layer (active only in training mode)
     """
     
-    def __init__(self, input_size, num_emotions=8):
+    def __init__(self, input_size, num_emotions=8, dropout_rate=0.5):
         super(EmotionClassifier, self).__init__()
         
         self.fc1 = nn.Linear(input_size, 512)
@@ -55,7 +56,9 @@ class EmotionClassifier(nn.Module):
         self.fc3 = nn.Linear(256, 128)
         self.fc4 = nn.Linear(128, num_emotions)
         
-        self.dropout = nn.Dropout(0.5)
+        self.dropout1 = nn.Dropout(dropout_rate)
+        self.dropout2 = nn.Dropout(dropout_rate)
+        self.dropout3 = nn.Dropout(dropout_rate)
         self.relu = nn.ReLU()
         
         self.batch_norm1 = nn.BatchNorm1d(512)
@@ -66,17 +69,17 @@ class EmotionClassifier(nn.Module):
         x = self.fc1(x)
         x = self.batch_norm1(x)
         x = self.relu(x)
-        x = self.dropout(x)
+        x = self.dropout1(x)
         
         x = self.fc2(x)
         x = self.batch_norm2(x)
         x = self.relu(x)
-        x = self.dropout(x)
+        x = self.dropout2(x)
         
         x = self.fc3(x)
         x = self.batch_norm3(x)
         x = self.relu(x)
-        x = self.dropout(x)
+        x = self.dropout3(x)
         
         x = self.fc4(x)
         return x
