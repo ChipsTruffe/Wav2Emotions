@@ -1,0 +1,83 @@
+\documentclass{beamer}					% Document class
+
+\usepackage[english]{babel}				% Set language
+\usepackage[utf8]{inputenc}			% Set encoding
+
+\mode<presentation>						% Set options
+{
+  \usetheme{default}					% Set theme
+  \usecolortheme{default} 				% Set colors
+  \usefonttheme{default}  				% Set font theme
+  \setbeamertemplate{caption}[numbered]	% Set caption to be numbered
+  \setbeamercolor{footnote}{fg=gray}
+  \setbeamerfont{footnote}{size=\footnotesize}
+}
+
+% Uncomment this to have the outline at the beginning of each section highlighted.
+\AtBeginSection[]
+{
+ \begin{frame}{Outline}
+   \tableofcontents[currentsection]
+ \end{frame}
+}
+
+
+\usepackage{graphicx}					% For including figures
+\usepackage{booktabs}					% For table rules
+\usepackage{hyperref}					% For cross-referencing
+
+\usepackage{tikz}                     % For drawing diagrams
+\usepackage{caption} 
+\usepackage[normalem]{ulem}
+
+\captionsetup[figure]{font={small, sf},labelformat=empty} % supprimer "Figure 1:" dans les captions des figures
+\captionsetup[table]{font={small, sf},labelformat=empty} 
+
+\usetikzlibrary{calc}
+
+\title{Speech to emotion classification}	% Presentation title
+\subtitle{Large-scale Generative Models for NLP and Speech Processing - Project}		% Presentation subtitle
+\author{Maloe Aymonier, Baptiste Geisenberger, Astrid Giuliani}								% Presentation author
+%\institute{Télécom Paris}					% Author affiliation
+\date{25/03/2026}									% Today's date	
+
+\begin{document}
+
+% Title page
+% This page includes the informations defined earlier including title, author/s, affiliation/s and the date
+\begin{frame}
+  \titlepage
+\end{frame}
+
+% Outline
+% This page includes the outline (Table of content) of the presentation. All sections and subsections will appear in the outline by default.
+% \begin{frame}{Outline}
+%   \tableofcontents
+% \end{frame}
+
+% The following is the most frequently used slide types in beamer
+% The slide structure is as follows:
+%
+%\begin{frame}{<slide-title>}
+%	<content>
+%\end{frame}
+
+
+
+\section{Task definition} 
+% Pick a task and dataset
+
+\section{Dataset}
+% Analyze the data
+
+\section{Methodology}
+% Build a model
+
+\section{Results}
+% Run experiments, show results
+
+
+\section{Discussion}
+% Analyze the errors made by the model
+
+\end{document}
