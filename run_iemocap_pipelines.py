@@ -61,6 +61,9 @@ DEFAULT_DATASET_ID = "AbstractTTS/IEMOCAP"
 DEFAULT_LABEL_COLUMN = "major_emotion"
 DEFAULT_DROP_LABELS = ("other",)
 DEFAULT_TEST_SESSIONS = ("Ses05",)
+DEFAULT_VALIDATION_SIZE = 0.15
+DEFAULT_EARLY_STOPPING_PATIENCE = 8
+DEFAULT_MAX_EPOCHS = 50
 
 
 @dataclass(frozen=True)
@@ -86,6 +89,10 @@ PIPELINE_CONFIGS = {
         use_audio=True,
         text_source="none",
         wave2vec_model_name="facebook/wav2vec2-base-960h",
+        num_epochs=DEFAULT_MAX_EPOCHS,
+        validation_size=DEFAULT_VALIDATION_SIZE,
+        early_stopping_patience=DEFAULT_EARLY_STOPPING_PATIENCE,
+        monitor="loss",
     ),
     "whisper_distilbert": PipelineConfig(
         name="whisper_distilbert",
@@ -93,12 +100,20 @@ PIPELINE_CONFIGS = {
         text_source="whisper",
         whisper_model_name="base",
         text_model_name="distilbert-base-uncased",
+        num_epochs=DEFAULT_MAX_EPOCHS,
+        validation_size=DEFAULT_VALIDATION_SIZE,
+        early_stopping_patience=DEFAULT_EARLY_STOPPING_PATIENCE,
+        monitor="loss",
     ),
     "transcript_distilbert": PipelineConfig(
         name="transcript_distilbert",
         use_audio=False,
         text_source="transcript",
         text_model_name="distilbert-base-uncased",
+        num_epochs=DEFAULT_MAX_EPOCHS,
+        validation_size=DEFAULT_VALIDATION_SIZE,
+        early_stopping_patience=DEFAULT_EARLY_STOPPING_PATIENCE,
+        monitor="loss",
     ),
     "audio_transcript_fusion": PipelineConfig(
         name="audio_transcript_fusion",
@@ -106,11 +121,11 @@ PIPELINE_CONFIGS = {
         text_source="transcript",
         wave2vec_model_name="facebook/wav2vec2-base-960h",
         text_model_name="distilbert-base-uncased",
-        num_epochs=50,
+        num_epochs=DEFAULT_MAX_EPOCHS,
         learning_rate=3e-4,
         dropout=0.3,
-        validation_size=0.15,
-        early_stopping_patience=8,
+        validation_size=DEFAULT_VALIDATION_SIZE,
+        early_stopping_patience=DEFAULT_EARLY_STOPPING_PATIENCE,
         monitor="loss",
     ),
 }
