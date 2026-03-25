@@ -1,0 +1,30 @@
+name: wav2emotions
+channels:
+  - pytorch
+  - conda-forge
+dependencies:
+  - python=3.10
+  - pip
+  - numpy
+  - pandas
+  - pyarrow
+  - matplotlib
+  - seaborn
+  - scikit-learn
+  - librosa
+  - pysoundfile
+  - ffmpeg
+  - pytorch
+  - torchaudio
+  - transformers
+  - datasets
+  - huggingface_hub
+  - tqdm
+  - requests
+  - jupyterlab
+  - notebook
+  - ipykernel
+  - ipywidgets
+  - tensorboard
+  - pip:
+      - openai-whisper

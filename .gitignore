@@ -2,7 +2,10 @@
 *.pyc
 *.zip
 *.flac
+__pycache__/
+.ipynb_checkpoints/
 
 global.instructions.md
 
 *MELD_data/*
+IEMOCAP_cache/
