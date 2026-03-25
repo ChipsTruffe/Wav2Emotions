@@ -6,8 +6,6 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import Dataset, DataLoader
 from tqdm import tqdm
-from sklearn.preprocessing import StandardScaler
-from sklearn.model_selection import train_test_split
 from config import MODEL_CONFIG, EMOTION_DICT
 
 
@@ -112,6 +110,9 @@ def prepare_data(X, y, test_size=None, random_state=None):
         test_size = MODEL_CONFIG['test_size']
     if random_state is None:
         random_state = MODEL_CONFIG['random_state']
+
+    from sklearn.model_selection import train_test_split
+    from sklearn.preprocessing import StandardScaler
     
     # Convert X to numpy array if needed
     X_array = np.array(X) if isinstance(X, list) else X
