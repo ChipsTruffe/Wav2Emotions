@@ -258,11 +258,54 @@ def session_holdout_split(metadata, test_sessions=("Ses05",)):
     return train_mask, test_mask
 
 
-def scale_train_test(X_train, X_test):
+def train_val_test_split(
+    metadata,
+    label_column="major_emotion",
+    test_sessions=("Ses05",),
+    validation_size=0.15,
+    random_state=42,
+):
+    if not 0.0 < validation_size < 1.0:
+        raise ValueError("validation_size must be between 0 and 1.")
+
+    train_eval_mask, test_mask = session_holdout_split(metadata, test_sessions=test_sessions)
+    train_eval_idx = np.flatnonzero(train_eval_mask)
+    train_eval_labels = metadata.iloc[train_eval_idx][label_column].to_numpy()
+
+    train_idx, val_idx = train_test_split(
+        train_eval_idx,
+        test_size=validation_size,
+        random_state=random_state,
+        stratify=train_eval_labels,
+    )
+
+    train_mask = np.zeros(len(metadata), dtype=bool)
+    val_mask = np.zeros(len(metadata), dtype=bool)
+    train_mask[train_idx] = True
+    val_mask[val_idx] = True
+
+    if not train_mask.any():
+        raise ValueError("No training samples left after validation split.")
+    if not val_mask.any():
+        raise ValueError("No validation samples selected by the validation split.")
+
+    return train_mask, val_mask, test_mask
+
+
+def scale_feature_splits(X_train, *other_splits):
     scaler = StandardScaler()
     X_train_scaled = scaler.fit_transform(X_train)
-    X_test_scaled = scaler.transform(X_test)
-    return X_train_scaled.astype(np.float32), X_test_scaled.astype(np.float32), scaler
+    scaled_splits = [X_train_scaled.astype(np.float32)]
+
+    for split in other_splits:
+        scaled_splits.append(scaler.transform(split).astype(np.float32))
+
+    return (*scaled_splits, scaler)
+
+
+def scale_train_test(X_train, X_test):
+    X_train_scaled, X_test_scaled, scaler = scale_feature_splits(X_train, X_test)
+    return X_train_scaled, X_test_scaled, scaler
 
 
 class FeatureDataset(Dataset):
@@ -297,12 +340,30 @@ class EmotionClassifier(nn.Module):
         return self.fc4(x)
 
 
+def create_feature_loader(features, labels, batch_size=32, shuffle=False):
+    dataset = FeatureDataset(features, labels)
+    return DataLoader(dataset, batch_size=batch_size, shuffle=shuffle)
+
+
 def create_dataloaders(X_train, y_train, X_test, y_test, batch_size=32):
-    train_dataset = FeatureDataset(X_train, y_train)
-    test_dataset = FeatureDataset(X_test, y_test)
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-    test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
+    train_loader = create_feature_loader(X_train, y_train, batch_size=batch_size, shuffle=True)
+    test_loader = create_feature_loader(X_test, y_test, batch_size=batch_size, shuffle=False)
     return train_loader, test_loader
+
+
+def create_train_val_test_dataloaders(
+    X_train,
+    y_train,
+    X_val,
+    y_val,
+    X_test,
+    y_test,
+    batch_size=32,
+):
+    train_loader = create_feature_loader(X_train, y_train, batch_size=batch_size, shuffle=True)
+    val_loader = create_feature_loader(X_val, y_val, batch_size=batch_size, shuffle=False)
+    test_loader = create_feature_loader(X_test, y_test, batch_size=batch_size, shuffle=False)
+    return train_loader, val_loader, test_loader
 
 
 def compute_class_weights(y_train, num_classes):
@@ -376,7 +437,16 @@ def train_model(
     num_epochs=30,
     learning_rate=1e-3,
     class_weights=None,
+    eval_name="test",
+    early_stopping_patience=None,
+    restore_best=False,
+    monitor="loss",
 ):
+    if eval_name not in {"test", "val"}:
+        raise ValueError("eval_name must be either 'test' or 'val'.")
+    if monitor not in {"loss", "acc"}:
+        raise ValueError("monitor must be either 'loss' or 'acc'.")
+
     if class_weights is not None:
         criterion = nn.CrossEntropyLoss(weight=class_weights.to(device))
     else:
@@ -387,9 +457,13 @@ def train_model(
     history = {
         "train_loss": [],
         "train_acc": [],
-        "test_loss": [],
-        "test_acc": [],
+        f"{eval_name}_loss": [],
+        f"{eval_name}_acc": [],
     }
+    best_state_dict = None
+    best_epoch = None
+    best_metric = None
+    epochs_without_improvement = 0
 
     print(f"Training on {device}...")
 
@@ -399,14 +473,44 @@ def train_model(
 
         history["train_loss"].append(train_loss)
         history["train_acc"].append(train_acc)
-        history["test_loss"].append(test_loss)
-        history["test_acc"].append(test_acc)
+        history[f"{eval_name}_loss"].append(test_loss)
+        history[f"{eval_name}_acc"].append(test_acc)
+
+        current_metric = test_loss if monitor == "loss" else test_acc
+        improved = False
+
+        if best_metric is None:
+            improved = True
+        elif monitor == "loss" and current_metric < best_metric:
+            improved = True
+        elif monitor == "acc" and current_metric > best_metric:
+            improved = True
+
+        if improved:
+            best_metric = current_metric
+            best_epoch = epoch + 1
+            best_state_dict = {key: value.detach().cpu().clone() for key, value in model.state_dict().items()}
+            epochs_without_improvement = 0
+        else:
+            epochs_without_improvement += 1
 
         if (epoch + 1) % 5 == 0 or epoch == 0:
             print(
                 f"Epoch [{epoch + 1}/{num_epochs}] "
                 f"train_loss={train_loss:.4f} train_acc={train_acc:.2f}% "
-                f"test_loss={test_loss:.4f} test_acc={test_acc:.2f}%"
+                f"{eval_name}_loss={test_loss:.4f} {eval_name}_acc={test_acc:.2f}%"
             )
 
+        if early_stopping_patience is not None and epochs_without_improvement >= early_stopping_patience:
+            print(
+                f"Early stopping at epoch {epoch + 1} "
+                f"(best {eval_name}_{monitor} at epoch {best_epoch}: {best_metric:.4f})"
+            )
+            break
+
+    if restore_best and best_state_dict is not None:
+        model.load_state_dict(best_state_dict)
+
+    history["best_epoch"] = best_epoch
+    history[f"best_{eval_name}_{monitor}"] = best_metric
     return history
